@@ -3,7 +3,9 @@ let currentPhrase = "Tap or Click to Roll (uses API)";
 let usedWords = new Set();
 let currentFontSize = 60;
 let isLoading = false;
-let showDebugShapes = true; // <<< Set to false to hide debug visuals later
+// *** CHANGE THIS TO FALSE TO HIDE DEBUG SHAPES ***
+let showDebugShapes = false;
+// ************************************************
 
 // --- p5.js Setup Function ---
 function setup() {
@@ -23,47 +25,40 @@ function setup() {
 function draw() {
     background(0);
     textSize(currentFontSize);
-    // Set fill for text *before* drawing it
-    fill(255); // White text
+    fill(255); // Set text color to white
 
     let displayPhrase = isLoading ? "Rolling..." : currentPhrase;
 
-    // --- Calculations for Text Box ---
-    let padding = width * 0.05;
-    let textBoxWidth = width - (padding * 2);
-    let textBoxHeight = height - (padding * 2);
+    // --- Calculations ---
     let centerX = width / 2;
     let centerY = height / 2;
 
-    // --- Optional: Visual Debugging ---
+    // --- Optional: Visual Debugging (Now controlled by the variable) ---
     if (showDebugShapes) {
-        push(); // Isolate debug drawing styles
+        push();
         noFill();
         strokeWeight(1);
-
-        // Draw a red box representing the text bounding box
+        // Draw a red box representing approximate text area (optional now)
         stroke(255, 0, 0); // Red
-        rectMode(CENTER); // Set mode for the debug rectangle
-        rect(centerX, centerY, textBoxWidth, textBoxHeight);
-        // *** ADD THIS LINE: Reset rectMode back to default ***
-        rectMode(CORNER);
-        // ****************************************************
-
+        rectMode(CENTER);
+        let debugBoxWidth = width * 0.9;
+        let debugBoxHeight = height * 0.8;
+        rect(centerX, centerY, debugBoxWidth, debugBoxHeight);
+        rectMode(CORNER); // Reset immediately
         // Draw a small green circle at the calculated center point
         stroke(0, 255, 0); // Green
-        // No mode needed for ellipse usually, coordinates are center by default
         ellipse(centerX, centerY, 10, 10);
-
-        pop(); // Restore original drawing styles
+        pop();
     }
     // --- End Visual Debugging ---
 
 
-    // Draw the actual text
-    // Ensure fill is white again in case pop() changed something unexpected
-    fill(255);
-    // Text should now respect textAlign(CENTER, CENTER) correctly
-    text(displayPhrase, centerX, centerY, textBoxWidth, textBoxHeight);
+    // --- Simplified Text Drawing ---
+    textAlign(CENTER, CENTER); // Set alignment just before drawing (redundant but safe)
+    fill(255); // Ensure fill is white
+    // Call text() with ONLY the string and the center coordinates.
+    text(displayPhrase, centerX, centerY);
+    // -----------------------------
 }
 
 
@@ -116,12 +111,12 @@ async function fetchWordFromAPI(length, typeHint = 'any') {
     console.log(`  Fetching API: length=${length}, hint=${typeHint}`);
     const spellingPattern = '?'.repeat(length);
     const apiUrl = `https://api.datamuse.com/words?sp=${spellingPattern}&max=100&md=p`;
-    console.log(`    API URL: ${apiUrl}`);
+    // console.log(`    API URL: ${apiUrl}`); // Can comment out for cleaner console
     try {
         const response = await fetch(apiUrl);
         if (!response.ok) throw new Error(`API request failed: ${response.status} ${response.statusText}`);
         const data = await response.json();
-        console.log(`    API returned ${data.length} potential words.`);
+        // console.log(`    API returned ${data.length} potential words.`); // Can comment out
         const candidates = data.filter(item => {
             const word = item.word;
             if (word.length !== length) return false;
@@ -130,7 +125,7 @@ async function fetchWordFromAPI(length, typeHint = 'any') {
             if (typeHint === 'noun') return item.tags && item.tags.includes('n');
             return true;
         });
-        console.log(`    Found ${candidates.length} valid, unused candidates matching criteria.`);
+        // console.log(`    Found ${candidates.length} valid, unused candidates matching criteria.`); // Can comment out
         if (candidates.length > 0) {
             const chosenItem = random(candidates);
             console.log(`    Chose API word: '${chosenItem.word}' (Tags: ${chosenItem.tags?.join(', ') || 'N/A'})`);
@@ -209,15 +204,15 @@ async function generatePhrase() {
 function calculateAdaptiveFontSize(text) {
     if (!text || text.length === 0) { console.log("[FontCalc] No text to calculate size for."); return; }
     let currentText = String(text);
-    console.log(`[FontCalc] Calculating for text: "${currentText}"`);
+    // console.log(`[FontCalc] Calculating for text: "${currentText}"`); // Can comment out
     let testFontSize = height * 0.7;
     let margin = width * 0.1;
     let availableWidth = width - margin;
     let availableHeight = height * 0.8;
-    console.log(`[FontCalc] Initial check: MaxW=${availableWidth.toFixed(1)}, MaxH=${availableHeight.toFixed(1)}, StartSize=${testFontSize.toFixed(1)}`);
+    // console.log(`[FontCalc] Initial check: MaxW=${availableWidth.toFixed(1)}, MaxH=${availableHeight.toFixed(1)}, StartSize=${testFontSize.toFixed(1)}`); // Can comment out
     textSize(testFontSize);
     let currentTextWidth = textWidth(currentText);
-    console.log(`[FontCalc] Initial text width at ${testFontSize.toFixed(1)}px: ${currentTextWidth.toFixed(1)}px`);
+    // console.log(`[FontCalc] Initial text width at ${testFontSize.toFixed(1)}px: ${currentTextWidth.toFixed(1)}px`); // Can comment out
     while (currentTextWidth > availableWidth && testFontSize > 10) {
         testFontSize -= 2;
         textSize(testFontSize);
