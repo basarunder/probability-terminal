@@ -3,79 +3,51 @@ let currentPhrase = "Tap or Click to Roll (uses API)";
 let usedWords = new Set();
 let currentFontSize = 60;
 let isLoading = false;
-// *** CHANGE THIS TO FALSE TO HIDE DEBUG SHAPES ***
-let showDebugShapes = false;
-// ************************************************
+let showDebugShapes = false; // Keep debug shapes off
 
 // --- p5.js Setup Function ---
 function setup() {
     createCanvas(windowWidth, windowHeight);
     console.log(`[Setup] Canvas created: width=${windowWidth}, height=${windowHeight}`);
-    console.log(`[Setup] p5 internal width=${width}, height=${height}`);
     colorMode(RGB);
-    textAlign(CENTER, CENTER); // Ensure this is called
+    textAlign(CENTER, CENTER); // Critical for alignment
     console.log("[Setup] textAlign set to (CENTER, CENTER)");
+    // Keep default font for now, consider changing for specific style
     textFont('Arial, Helvetica, sans-serif', currentFontSize);
-    fill(255);
+    fill(255); // White text
     console.log("[Setup] Setup complete. Tap or Click.");
     calculateAdaptiveFontSize(currentPhrase);
 }
 
 // --- p5.js Draw Function ---
 function draw() {
-    background(0);
+    background(0); // Black background
     textSize(currentFontSize);
-    fill(255); // Set text color to white
+    fill(255); // White text
 
-    let displayPhrase = isLoading ? "Rolling..." : currentPhrase;
+    let displayPhrase = isLoading ? "ROLLING..." : currentPhrase; // Uppercase Rolling too
 
-    // --- Calculations ---
     let centerX = width / 2;
     let centerY = height / 2;
 
-    // --- Optional: Visual Debugging (Now controlled by the variable) ---
-    if (showDebugShapes) {
-        push();
-        noFill();
-        strokeWeight(1);
-        // Draw a red box representing approximate text area (optional now)
-        stroke(255, 0, 0); // Red
-        rectMode(CENTER);
-        let debugBoxWidth = width * 0.9;
-        let debugBoxHeight = height * 0.8;
-        rect(centerX, centerY, debugBoxWidth, debugBoxHeight);
-        rectMode(CORNER); // Reset immediately
-        // Draw a small green circle at the calculated center point
-        stroke(0, 255, 0); // Green
-        ellipse(centerX, centerY, 10, 10);
-        pop();
-    }
-    // --- End Visual Debugging ---
-
-
-    // --- Simplified Text Drawing ---
-    textAlign(CENTER, CENTER); // Set alignment just before drawing (redundant but safe)
-    fill(255); // Ensure fill is white
-    // Call text() with ONLY the string and the center coordinates.
+    // Simplified text call
     text(displayPhrase, centerX, centerY);
-    // -----------------------------
 }
-
 
 // --- Trigger Function ---
 async function triggerPhraseGeneration() {
     if (isLoading) { console.log("[Trigger] Ignored: Already loading."); return; }
     isLoading = true;
-    currentPhrase = "Rolling...";
+    currentPhrase = "ROLLING..."; // Uppercase here too
     console.log("[Trigger] Set loading state TRUE");
 
     console.log("\n--- Trigger Received: Generating Phrase via API ---");
     try {
-        currentPhrase = await generatePhrase();
+        currentPhrase = await generatePhrase(); // generatePhrase is async
         console.log(`[Trigger] Phrase generated: "${currentPhrase}"`);
     } catch (error) {
         console.error("[Trigger] Error generating phrase:", error);
-        currentPhrase = "Error: Could not generate phrase";
+        currentPhrase = "ERROR: COULD NOT GENERATE PHRASE"; // Uppercase error
     } finally {
         isLoading = false;
         console.log("[Trigger] Set loading state FALSE");
@@ -99,7 +71,6 @@ function touchStarted() {
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
     console.log(`[Window Resized] New dimensions: width=${windowWidth}, height=${windowHeight}`);
-    console.log(`[Window Resized] p5 internal width=${width}, height=${height}`);
     calculateAdaptiveFontSize(currentPhrase);
 }
 
@@ -111,12 +82,12 @@ async function fetchWordFromAPI(length, typeHint = 'any') {
     console.log(`  Fetching API: length=${length}, hint=${typeHint}`);
     const spellingPattern = '?'.repeat(length);
     const apiUrl = `https://api.datamuse.com/words?sp=${spellingPattern}&max=100&md=p`;
-    // console.log(`    API URL: ${apiUrl}`); // Can comment out for cleaner console
+    // console.log(`    API URL: ${apiUrl}`);
     try {
         const response = await fetch(apiUrl);
         if (!response.ok) throw new Error(`API request failed: ${response.status} ${response.statusText}`);
         const data = await response.json();
-        // console.log(`    API returned ${data.length} potential words.`); // Can comment out
+        // console.log(`    API returned ${data.length} potential words.`);
         const candidates = data.filter(item => {
             const word = item.word;
             if (word.length !== length) return false;
@@ -125,7 +96,7 @@ async function fetchWordFromAPI(length, typeHint = 'any') {
             if (typeHint === 'noun') return item.tags && item.tags.includes('n');
             return true;
         });
-        // console.log(`    Found ${candidates.length} valid, unused candidates matching criteria.`); // Can comment out
+        // console.log(`    Found ${candidates.length} valid, unused candidates matching criteria.`);
         if (candidates.length > 0) {
             const chosenItem = random(candidates);
             console.log(`    Chose API word: '${chosenItem.word}' (Tags: ${chosenItem.tags?.join(', ') || 'N/A'})`);
@@ -142,59 +113,68 @@ async function fetchWordFromAPI(length, typeHint = 'any') {
 
 
 // --- Helper: Generate Phrase using API ---
-// (Remains the same)
 async function generatePhrase() {
     let d1 = floor(random(1, 7)), d2 = floor(random(1, 7));
     console.log(`Rolled: D1=${d1}, D2=${d2}`);
-    let word1_base = null, word2_base = null, word1_display = null, word2_display = null;
+    let word1_base = null, word2_base = null;
+    let word1_display = null, word2_display = null;
+
+    // --- Rule for Word 1 ---
     console.log("Attempting to find Word 1...");
     if (d1 === 1) {
-        let specials = ['a', 'i', 'o', '!', '?', '2', '3', '4'];
+        // Special characters/digits for D1=1
+        let specials = ['A', 'I', 'O', '!', '?', '2', '3', '4']; // Use uppercase A, I, O directly
         word1_base = random(specials);
         console.log(`  D1=1, chose special character: '${word1_base}'`);
-        word1_display = word1_base;
+        word1_display = word1_base; // Use directly (already uppercase or symbol/digit)
     } else {
+        // Fetch word of length d1 from API
         word1_base = await fetchWordFromAPI(d1, 'any');
-        if (word1_base) word1_display = word1_base;
-        else { console.log("  Failed to fetch suitable Word 1 from API."); return `Re-roll (API fail Word 1 len=${d1})`; }
+        if (word1_base) {
+            word1_display = word1_base; // Keep as base for now, will uppercase later
+        } else {
+            console.log("  Failed to fetch suitable Word 1 from API.");
+            return `RE-ROLL (API FAIL WORD 1 LEN=${d1})`; // Uppercase error
+        }
     }
+
+    // --- Rule for Word 2 ---
     console.log("Attempting to find Word 2 (prefer noun)...");
+    // Fetch word of length d2, hinting for noun
     word2_base = await fetchWordFromAPI(d2, 'noun');
     if (!word2_base) {
         console.log("  Could not fetch Noun for D2. Falling back to ANY word type...");
-        word2_base = await fetchWordFromAPI(d2, 'any');
+        word2_base = await fetchWordFromAPI(d2, 'any'); // Fallback fetch
     }
+
     if (!word2_base) {
         console.log("  Failed to fetch suitable Word 2 (any type) from API.");
         let word1_info = word1_base ? `'${word1_base}'` : `(Special D1=${d1})`;
-        return `Re-roll (Got Word 1: ${word1_info}, API fail Word 2 len=${d2})`;
+        // Uppercase error
+        return `RE-ROLL (GOT WORD 1: ${word1_info}, API FAIL WORD 2 LEN=${d2})`;
     }
+    // Word 2 display is just the base form now
     word2_display = word2_base;
-    console.log(`Checking pluralization: D1=${d1}, base='${word2_base}'`);
-    if (d1 % 2 === 0 && word2_base.length > 1) {
-        console.log(`  Attempting pluralization (D1 is even)...`);
-        try {
-            let plural_form = pluralize(word2_base); // Requires pluralize.js library
-            console.log(`  Plural form: '${plural_form}'`);
-            if (plural_form !== word2_base && plural_form.length === d2) {
-                console.log(`  Plural length (${plural_form.length}) matches D2 (${d2}).`);
-                if (!usedWords.has(plural_form) && plural_form !== word1_base) {
-                    console.log(`  Plural form '${plural_form}' is available. Using plural.`);
-                    word2_display = plural_form;
-                } else console.log(`  Plural form '${plural_form}' is used or is Word 1. Keeping base: '${word2_base}'`);
-            } else if (plural_form !== word2_base) console.log(`  Plural form '${plural_form}' length does not match D2 (${d2}). Keeping base: '${word2_base}'`);
-            else console.log(`  Word '${word2_base}' unchanged by pluralize. Keeping base.`);
-        } catch (e) { console.error("  Error during pluralization:", e); }
-    } else console.log(`  Not attempting pluralization (D1 odd or word too short).`);
-    if (typeof word1_display === 'string') {
-        if (word1_display === 'i') word1_display = 'I';
-        else if (word1_display.length > 0 && /^[a-z]/i.test(word1_display)) word1_display = word1_display.charAt(0).toUpperCase() + word1_display.slice(1);
-    }
-    let finalPhrase = `${word1_display} ${word2_display}`;
+
+    // --- NO PLURALIZATION BLOCK ---
+
+    // --- Final Phrase Construction ---
+    // Combine and convert the whole phrase to uppercase
+    let finalPhrase = `${word1_display} ${word2_display}`.toUpperCase();
     console.log(`Constructed phrase: '${finalPhrase}'`);
-    if (word1_base && typeof word1_base === 'string' && /^[a-z]+$/i.test(word1_base)) { console.log(`  Adding Word 1 base '${word1_base}' to used set.`); usedWords.add(word1_base); }
-    if (word2_base) { console.log(`  Adding Word 2 base '${word2_base}' to used set.`); usedWords.add(word2_base); }
+
+    // --- Update Global Used Words ---
+    // Add BASE forms only
+    if (word1_base && typeof word1_base === 'string' && /^[a-z]+$/i.test(word1_base)) {
+        console.log(`  Adding Word 1 base '${word1_base}' to used set.`);
+        usedWords.add(word1_base);
+    }
+    if (word2_base) {
+         console.log(`  Adding Word 2 base '${word2_base}' to used set.`);
+        usedWords.add(word2_base);
+    }
     console.log(`Used words count: ${usedWords.size}`);
+
     return finalPhrase;
 }
 
@@ -204,15 +184,15 @@ async function generatePhrase() {
 function calculateAdaptiveFontSize(text) {
     if (!text || text.length === 0) { console.log("[FontCalc] No text to calculate size for."); return; }
     let currentText = String(text);
-    // console.log(`[FontCalc] Calculating for text: "${currentText}"`); // Can comment out
+    // console.log(`[FontCalc] Calculating for text: "${currentText}"`);
     let testFontSize = height * 0.7;
     let margin = width * 0.1;
     let availableWidth = width - margin;
     let availableHeight = height * 0.8;
-    // console.log(`[FontCalc] Initial check: MaxW=${availableWidth.toFixed(1)}, MaxH=${availableHeight.toFixed(1)}, StartSize=${testFontSize.toFixed(1)}`); // Can comment out
+    // console.log(`[FontCalc] Initial check: MaxW=${availableWidth.toFixed(1)}, MaxH=${availableHeight.toFixed(1)}, StartSize=${testFontSize.toFixed(1)}`);
     textSize(testFontSize);
     let currentTextWidth = textWidth(currentText);
-    // console.log(`[FontCalc] Initial text width at ${testFontSize.toFixed(1)}px: ${currentTextWidth.toFixed(1)}px`); // Can comment out
+    // console.log(`[FontCalc] Initial text width at ${testFontSize.toFixed(1)}px: ${currentTextWidth.toFixed(1)}px`);
     while (currentTextWidth > availableWidth && testFontSize > 10) {
         testFontSize -= 2;
         textSize(testFontSize);
