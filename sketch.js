@@ -11,7 +11,7 @@ function setup() {
     console.log(`[Setup] Canvas created: width=${windowWidth}, height=${windowHeight}`);
     console.log(`[Setup] p5 internal width=${width}, height=${height}`);
     colorMode(RGB);
-    textAlign(CENTER, CENTER);
+    textAlign(CENTER, CENTER); // Ensure this is called
     console.log("[Setup] textAlign set to (CENTER, CENTER)");
     textFont('Arial, Helvetica, sans-serif', currentFontSize);
     fill(255);
@@ -23,7 +23,8 @@ function setup() {
 function draw() {
     background(0);
     textSize(currentFontSize);
-    fill(255); // Set text color to white
+    // Set fill for text *before* drawing it
+    fill(255); // White text
 
     let displayPhrase = isLoading ? "Rolling..." : currentPhrase;
 
@@ -37,25 +38,31 @@ function draw() {
     // --- Optional: Visual Debugging ---
     if (showDebugShapes) {
         push(); // Isolate debug drawing styles
-        noFill(); // Don't fill the shapes
+        noFill();
         strokeWeight(1);
 
         // Draw a red box representing the text bounding box
         stroke(255, 0, 0); // Red
-        rectMode(CENTER); // Draw rectangle from its center
+        rectMode(CENTER); // Set mode for the debug rectangle
         rect(centerX, centerY, textBoxWidth, textBoxHeight);
+        // *** ADD THIS LINE: Reset rectMode back to default ***
+        rectMode(CORNER);
+        // ****************************************************
 
         // Draw a small green circle at the calculated center point
         stroke(0, 255, 0); // Green
-        ellipse(centerX, centerY, 10, 10); // 10px diameter circle
+        // No mode needed for ellipse usually, coordinates are center by default
+        ellipse(centerX, centerY, 10, 10);
 
         pop(); // Restore original drawing styles
     }
     // --- End Visual Debugging ---
 
 
-    // Draw the actual text (should be centered within the red box)
-    fill(255); // Make sure text fill is reset to white after debug shapes
+    // Draw the actual text
+    // Ensure fill is white again in case pop() changed something unexpected
+    fill(255);
+    // Text should now respect textAlign(CENTER, CENTER) correctly
     text(displayPhrase, centerX, centerY, textBoxWidth, textBoxHeight);
 }
 
@@ -66,7 +73,6 @@ async function triggerPhraseGeneration() {
     isLoading = true;
     currentPhrase = "Rolling...";
     console.log("[Trigger] Set loading state TRUE");
-    // No need to call draw(), it loops
 
     console.log("\n--- Trigger Received: Generating Phrase via API ---");
     try {
