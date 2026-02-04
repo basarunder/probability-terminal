@@ -199,9 +199,9 @@ function windowResized() {
 
 // --- Helper: Fetch Word from Datamuse API ---
 // (Remains the same)
-async function fetchWordFromAPI(length, typeHint = 'any') {
+async function fetchWordFromAPI(length, typeHint = 'any', constraint = null) {
     if (length < 1 || length > 15) { console.log(`Invalid length requested: ${length}`); return null; }
-    console.log(`  Fetching API: length=${length}, hint=${typeHint}`);
+    console.log(`  Fetching API: length=${length}, hint=${typeHint}, constraint=${constraint}`);
     const spellingPattern = '?'.repeat(length);
     const apiUrl = `https://api.datamuse.com/words?sp=${spellingPattern}&max=100&md=p`;
     // console.log(`    API URL: ${apiUrl}`);
@@ -215,6 +215,14 @@ async function fetchWordFromAPI(length, typeHint = 'any') {
             if (word.length !== length) return false;
             if (!/^[a-z]+$/i.test(word)) return false;
             if (usedWords.has(word.toLowerCase())) return false;
+
+            // Apply vowel/consonant constraint
+            if (constraint === 'vowel') {
+                if (!/^[aeiou]/i.test(word)) return false;
+            } else if (constraint === 'consonant') {
+                if (/^[aeiou]/i.test(word)) return false;
+            }
+
             if (typeHint === 'noun') return item.tags && item.tags.includes('n');
             return true;
         });
@@ -262,11 +270,24 @@ async function generatePhrase() {
 
     // --- Rule for Word 2 ---
     console.log("Attempting to find Word 2 (prefer noun)...");
-    // Fetch word of length d2, hinting for noun
-    word2_base = await fetchWordFromAPI(d2, 'noun');
+
+    // Check for 'a'/'an' constraint logic
+    let constraint = null;
+    if (word1_base && word1_base.toLowerCase() === 'a') {
+        constraint = 'consonant';
+    } else if (word1_base && word1_base.toLowerCase() === 'an') {
+        constraint = 'vowel';
+    }
+
+    if (constraint) {
+        console.log(`  Word 1 is '${word1_base}', enforcing '${constraint}' start for Word 2.`);
+    }
+
+    // Fetch word of length d2, hinting for noun, with constraint
+    word2_base = await fetchWordFromAPI(d2, 'noun', constraint);
     if (!word2_base) {
         console.log("  Could not fetch Noun for D2. Falling back to ANY word type...");
-        word2_base = await fetchWordFromAPI(d2, 'any'); // Fallback fetch
+        word2_base = await fetchWordFromAPI(d2, 'any', constraint); // Fallback fetch
     }
 
     if (!word2_base) {
